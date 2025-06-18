@@ -91,13 +91,8 @@ def process_body(
                 yield from process_body(outline, data)
                 data.list_depth -= 2
         elif structure == 'paragraph':
-            # Wrap paragraphs to ~70 characters with proper line breaks
-            wrapped_text = wrap_text(text)
-            for line in wrapped_text.split('\n'):
-                if line.strip():
-                    yield line
-                else:
-                    yield ''
+            # For paragraphs, preserve the original text formatting
+            yield text
 
 
 def extract_header(
