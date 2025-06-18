@@ -2,8 +2,8 @@
 
 ;; Copyright (C) 2014-2025 Eric Davis, Guy Freeman
 
-;; Author: Eric Davis <eric@davising.com>
-;; Maintainer: Eric Davis <eric@davising.com>
+;; Author: Eric Davis <eric@davising.com>, Guy Freeman <emacs@gfrm.in>
+;; Maintainer: Guy Freeman <emacs@gfrm.in>
 ;; Version: 2.0.0
 ;; Package-Requires: ((emacs "24.4") (org "8.0"))
 ;; Keywords: opml, xml, org, outlines
