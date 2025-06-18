@@ -67,7 +67,7 @@
     (template . org-opml-template)
     (underline . org-opml-underline))
   :options-alist '((:opml-link "OPML_LINK" nil nil t)
-                   (:opml-owner-id "OPML_OWNER_ID" nil 
+                   (:opml-owner-id "OPML_OWNER_ID" nil
                     (if (boundp 'opml-owner-id) opml-owner-id nil) t))
   :menu-entry '(?m "Export to OPML"
                 (lambda (a s v b) (org-opml-export-to-opml a s v b)))
@@ -130,7 +130,7 @@ contextual information."
   "Build a key=value string from all property nodes for a given HEADLINE."
   (let* ((pom (org-element-property :begin headline))
          (properties (org-entry-properties pom))
-         (attributes (mapconcat 
+         (attributes (mapconcat
                       (lambda (element)
                         (let ((key (car element))
                               (value (cdr element))
@@ -147,7 +147,7 @@ holding contextual information."
   (let ((text (org-opml-clean-text (org-element-property :raw-value headline)))
         (attributes (org-opml-build-attributes headline))
         (contents (if (string= contents "\n") "" (or contents ""))))
-    (format "<outline text='%s' structure=\"headline\" %s>%s</outline>" 
+    (format "<outline text='%s' structure=\"headline\" %s>%s</outline>"
             text attributes contents)))
 
 (defun org-opml-paragraph (paragraph contents _info)
