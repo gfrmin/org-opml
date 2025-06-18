@@ -92,6 +92,7 @@ def process_body(
                 data.list_depth -= 2
         elif structure == 'paragraph':
             # For paragraphs, preserve the original text formatting
+            yield ''  # Add blank line before paragraph
             yield text
 
 
