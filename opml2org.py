@@ -91,9 +91,8 @@ def process_body(
                 yield from process_body(outline, data)
                 data.list_depth -= 2
         elif structure == 'paragraph':
-            # For paragraphs, preserve the original text formatting
-            yield ''  # Add blank line before paragraph
-            yield text
+            # For paragraphs under headlines, indent with 2 spaces
+            yield f"  {text}"
 
 
 def extract_header(
