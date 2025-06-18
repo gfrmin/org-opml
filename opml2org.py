@@ -73,12 +73,17 @@ def process_body(
                 for key, value in attrib.items():
                     yield f"  :{key}: {value}"
                 yield '  :END:'
-                if list(outline): # Add a blank line if properties are followed by more content under this headline
-                    yield ''
+            
             if list(outline):
+                # Add blank line after properties if we have both properties and children
+                if attrib:
+                    yield ''
                 data.headline_depth += 1
                 yield from process_body(outline, data)
                 data.headline_depth -= 1
+                # Add blank line after headline section if we're at depth 1 or 2
+                if data.headline_depth <= 2:
+                    yield ''
         elif structure == 'list':
             yield f"{' ' * data.list_depth}- {text}"
             if list(outline): # This list item has a sub-list
@@ -86,7 +91,13 @@ def process_body(
                 yield from process_body(outline, data)
                 data.list_depth -= 2
         elif structure == 'paragraph':
-            yield text # Removed trailing \n; '\n'.join will handle line separation
+            # Wrap paragraphs to ~70 characters with proper line breaks
+            wrapped_text = wrap_text(text)
+            for line in wrapped_text.split('\n'):
+                if line.strip():
+                    yield line
+                else:
+                    yield ''
 
 
 def extract_header(
@@ -111,6 +122,25 @@ def extract_header(
     return None
 
 
+def wrap_text(text: str, width: int = 70) -> str:
+    """Wrap text to specified width, preserving existing line breaks."""
+    import textwrap
+    
+    # Split on existing newlines first
+    lines = text.split('\n')
+    wrapped_lines = []
+    
+    for line in lines:
+        if len(line.strip()) == 0:
+            wrapped_lines.append('')
+        else:
+            # Wrap each line individually
+            wrapped = textwrap.fill(line.strip(), width=width)
+            wrapped_lines.append(wrapped)
+    
+    return '\n'.join(wrapped_lines)
+
+
 def main() -> None:
     """Read OPML from a file or stdin and write Org mode to stdout."""
     parser = argparse.ArgumentParser(description=__doc__)
@@ -131,13 +161,20 @@ def main() -> None:
         head = ET.Element('head')
     if body is None:
         raise ValueError("OPML file must contain a <body> element")
-    headers = filter(
+    # Check if this looks like an NBA-style document (has description)
+    has_description = head.find('description') is not None and head.find('description').text
+    
+    headers = []
+    if has_description:
+        headers.append('#+STARTUP: indent')
+    
+    headers.extend(filter(
         None,
         (
             extract_header(head, 'title'),
             extract_header(head, 'description'),
         ),
-    )
+    ))
     org_header_lines = list(headers)
     org_body_lines = list(process_body(body))
 
@@ -158,7 +195,8 @@ def main() -> None:
     
     # Ensure final output ends with a single newline, unless it's completely empty.
     if final_output:
-        final_output = final_output.rstrip('\n') + '\n'
+        # Remove any trailing empty lines, then add exactly one newline
+        final_output = final_output.rstrip() + '\n'
         
     sys.stdout.write(final_output)
 
