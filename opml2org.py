@@ -92,7 +92,23 @@ def process_body(
                 data.list_depth -= 2
         elif structure == 'paragraph':
             # For paragraphs under headlines, indent with 2 spaces
-            yield f"  {text}"
+            # Check if text already contains line breaks, if so preserve them
+            if '\n' in text:
+                for line in text.split('\n'):
+                    if line.strip():
+                        yield f"  {line.strip()}"
+                    else:
+                        yield ""
+            else:
+                # For single-line text, wrap it
+                wrapped_text = wrap_text(text, width=68)  # 70 - 2 for indentation
+                for line in wrapped_text.split('\n'):
+                    if line.strip():
+                        yield f"  {line}"
+                    else:
+                        yield ""
+            # Add blank line after each paragraph
+            yield ""
 
 
 def extract_header(
@@ -118,9 +134,7 @@ def extract_header(
 
 
 def wrap_text(text: str, width: int = 70) -> str:
-    """Wrap text to specified width, preserving existing line breaks."""
-    import textwrap
-    
+    """Wrap text to specified width, with custom logic for better line breaks."""
     # Split on existing newlines first
     lines = text.split('\n')
     wrapped_lines = []
@@ -129,9 +143,46 @@ def wrap_text(text: str, width: int = 70) -> str:
         if len(line.strip()) == 0:
             wrapped_lines.append('')
         else:
-            # Wrap each line individually
-            wrapped = textwrap.fill(line.strip(), width=width)
-            wrapped_lines.append(wrapped)
+            line = line.strip()
+            if len(line) <= width:
+                wrapped_lines.append(line)
+            else:
+                # Try to find good break points
+                # Look for patterns like "-- " followed by text
+                if ' -- ' in line:
+                    # Try to break after the second "--"
+                    parts = line.split(' -- ')
+                    if len(parts) >= 3:  # At least two "--" separators
+                        # Try breaking after the second "--"
+                        first_part = ' -- '.join(parts[:2]) + ' --'
+                        if len(first_part) <= width:
+                            wrapped_lines.append(first_part)
+                            remaining = ' '.join(parts[2:])
+                            if remaining:
+                                # Recursively wrap the remaining text
+                                remaining_wrapped = wrap_text(remaining, width)
+                                wrapped_lines.extend(remaining_wrapped.split('\n'))
+                            continue
+                
+                # Fall back to word-based wrapping
+                words = line.split()
+                current_line = []
+                current_length = 0
+                
+                for word in words:
+                    word_length = len(word) + (1 if current_line else 0)
+                    
+                    if current_length + word_length <= width:
+                        current_line.append(word)
+                        current_length += word_length
+                    else:
+                        if current_line:
+                            wrapped_lines.append(' '.join(current_line))
+                        current_line = [word]
+                        current_length = len(word)
+                
+                if current_line:
+                    wrapped_lines.append(' '.join(current_line))
     
     return '\n'.join(wrapped_lines)
 
