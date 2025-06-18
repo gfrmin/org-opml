@@ -294,7 +294,10 @@
 
 ;;;###autoload
 (defun org-opml-encode (begin end buffer)
-  "Encode Org content between BEGIN and END as OPML."
+  "Encode Org content between BEGIN and END as OPML.
+BUFFER is the target buffer where the OPML content will be inserted.
+The original content between BEGIN and END is replaced with the
+exported OPML format. Returns the new end position after insertion."
   (let ((org-export-show-temporary-export-buffer nil)
         (temp-buffer-name "*OPML Export Buffer*"))
     (org-export-to-buffer 'opml temp-buffer-name)
@@ -307,7 +310,7 @@
 ;;; File format registration
 
 (defun org-opml--set-buffer-file-format ()
-  "Set buffer-file-format to \\='(opml) when visiting an .opml file."
+  "Set `buffer-file-format' to \\='(opml) when visiting an .opml file."
   (when (and buffer-file-name
              (string-match-p "\\.opml\\'" buffer-file-name))
     (setq buffer-file-format '(opml))))
