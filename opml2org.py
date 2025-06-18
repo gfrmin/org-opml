@@ -110,7 +110,13 @@ def main() -> None:
         xml_content = sys.stdin.read()
 
     tree = ET.fromstring(xml_content)
-    head, body = tree  # type: ignore[tuple-item]
+    head = tree.find('head')
+    body = tree.find('body')
+    
+    if head is None:
+        head = ET.Element('head')
+    if body is None:
+        raise ValueError("OPML file must contain a <body> element")
     headers = filter(
         None,
         (

@@ -1,21 +1,28 @@
 ;; Locate the OPML import backend
-(setq opml2org (locate-file "opml2org.py" load-path))
+(defun find-opml2org ()
+  "Find opml2org.py script in various locations."
+  (or (executable-find "opml2org.py")
+      (let ((script-path (expand-file-name "opml2org.py" default-directory)))
+        (when (file-executable-p script-path) script-path))
+      (let ((script-path (expand-file-name "opml2org.py" (file-name-directory load-file-name))))
+        (when (file-executable-p script-path) script-path))))
 
 ;;;###autoload
 (defun opml-decode (begin end)
-  (if (eq opml2org nil)
-    (error "Could not locate opml2org.py. Make sure it's in `load-path'.")
-    (let ((status (call-process-region
-                   (point-min) (point-max)
-                   opml2org
-                   ;; three 't's = redisplay current buffer with processed text
-                   t t t)))
-      (cond ((eq status 0)
-             ;; on success, return end point
-             (point-max))
+  (let ((opml2org (find-opml2org)))
+    (if (eq opml2org nil)
+        (error "Could not locate opml2org.py. Make sure it's executable and in PATH or current directory.")
+      (let ((status (call-process-region
+                     (point-min) (point-max)
+                     opml2org
+                     ;; three 't's = redisplay current buffer with processed text
+                     t t t)))
+        (cond ((eq status 0)
+               ;; on success, return end point
+               (point-max))
 
-            (t ;; otherwise, signal an error
-             (error "Could not call opml2org.py."))))))
+              (t ;; otherwise, signal an error
+               (error "Could not call opml2org.py. Exit status: %s" status)))))))
 
 ;; If it ends with .opml, use `opml-encode' when saving.
 (defun set-buffer-file-format-to-opml ()
