@@ -36,6 +36,8 @@ parsed using standard XML/OPML libraries.
 - Can set =<outline>= attributes via property drawers
 - Uses standard [[http://orgmode.org/org.html#Export-settings][export settings]] in the =<head>= element
 - Follows the OPML 2.0 [[http://dev.opml.org/spec2.html][specification]]
+- Includes comprehensive test suite with example files
+- Supports both simple outlines and complex structured documents with attributes
 
 * Installation
 
@@ -43,12 +45,16 @@ Until we get this on MELPA, you have a few options:
 
 ** Manually
 
-1) Copy =org-opml.el= and =ox-opml.el= into a directory in your =load-path=
-2) Update the path to =opml2org.py=, if necessary
-3) Then, in =~/.emacs= put =(load-library "org-opml")=
-4) Move your cursor after the last parenthesis and type =C-x
+1) Copy =org-opml.el=, =ox-opml.el=, and =opml2org.py= into a directory in your =load-path=
+2) Ensure =opml2org.py= is executable: =chmod +x opml2org.py=
+3) Make sure Python 3 is available on your system
+4) Then, in =~/.emacs= put =(load-library "org-opml")=
+5) Move your cursor after the last parenthesis and type =C-x
    C-e=. Everything in =org-opml.el= will now be evaluated and you
    should be ready to start using it.
+
+*Note:* The =opml2org.py= script will be automatically located if it's in your PATH, 
+in the current directory, or in the same directory as the Elisp files.
 
 ** With el-get
 
@@ -85,13 +91,33 @@ following lines to your Elisp:
 #+END_EXAMPLE
 * How it works
 
-=org-opml= consists of three files:
+=org-opml= consists of three main files:
 
 - *ox-opml.el* converts Org mode to OPML. It defines an OPML backend
   using Org mode's export dispatcher.
-- *opml2org.py* converts OPML to Org mode. It's a Python script.
-- *org-opml.el* handles all the necessary configuration.
+- *opml2org.py* converts OPML to Org mode. It's a Python 3 script that handles
+  the intelligent conversion of OPML structure to appropriate Org mode elements
+  (headlines, lists, paragraphs) based on context and attributes.
+- *org-opml.el* handles all the necessary configuration and file format registration.
+
+The conversion logic intelligently determines whether OPML outline elements should
+become headlines, list items, or paragraphs based on:
+- Presence of custom attributes (forces headline structure)
+- Hierarchical context and nesting level
+- Whether the document uses "simple" vs "attributed" OPML patterns
 
 Also, as =ox-opml.el= is built using Org mode's export dispatcher, you
 can perform a one-way Org mode -> OPML export by typing =C-c C-e m= in
 an open Org mode file.
+
+** Testing
+
+The project includes a comprehensive test suite in =test_opml2org.py= with
+example files in the =examples/= directory. Run tests with:
+
+#+BEGIN_EXAMPLE
+python3 test_opml2org.py
+#+END_EXAMPLE
+
+The examples demonstrate both simple hierarchical outlines (like =nba.opml=)
+and complex attributed documents (like =attributes.opml=).
