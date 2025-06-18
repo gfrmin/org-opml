@@ -1,11 +1,16 @@
-;;; ox-opml.el --- Export Org files to OPML
+;;; ox-opml.el --- Export Org files to OPML -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2014 Eric Davis
+;; Copyright (C) 2014-2025 Eric Davis, Guy Freeman
 
 ;; Author: Eric Davis <eric@davising.com>
-;; Keywords: opml, xml
+;; Maintainer: Eric Davis <eric@davising.com>
+;; Version: 2.0.0
+;; Package-Requires: ((emacs "24.4") (org "8.0"))
+;; Keywords: opml, xml, org, outlines, export
+;; URL: https://github.com/org-opml/org-opml
+;; Homepage: https://github.com/org-opml/org-opml
 
-;; This file is not yet part of GNU Emacs.
+;; This file is not part of GNU Emacs.
 
 ;; This program is free software: you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -18,9 +23,34 @@
 ;; GNU General Public License for more details.
 
 ;; You should have received a copy of the GNU General Public License
-;; along with GNU Emacs.  If not, see <http://www.gnu.org/licenses/>.
+;; along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
+;;; Commentary:
+
+;; This library implements an OPML export backend for Org mode.
+;;
+;; OPML (Outline Processor Markup Language) is a standardized XML file
+;; format for storing outlines.  This backend allows you to export Org
+;; mode files to OPML format.
+;;
+;; The backend supports:
+;; - Headlines with properties (converted to OPML attributes)
+;; - Plain lists (converted to OPML outline elements)
+;; - Paragraphs (converted to OPML outline elements)
+;; - Basic text formatting (bold, italic, underline)
+;; - Links
+;; - Export settings in the OPML head element
+;;
+;; Usage:
+;; From an Org mode buffer, use C-c C-e m to export to OPML.
+;;
+;; This backend is automatically loaded when you use org-opml.el.
+
+;;; Code:
 
 (require 'ox)
+
+;;; Backend Definition
 
 (org-export-define-backend 'opml
   '((bold . org-opml-bold)
@@ -35,171 +65,191 @@
     (subscript . org-ascii-subscript)
     (superscript . org-ascii-superscript)
     (template . org-opml-template)
-    (underline . org-opml-underline)
-    ;; (center-block . org-ascii-center-block)
-    ;; (clock . org-ascii-clock)
-    ;; (code . org-ascii-code)
-    ;; (comment . (lambda (&rest args) ""))
-    ;; (comment-block . (lambda (&rest args) ""))
-    ;; (drawer . org-ascii-drawer)
-    ;; (dynamic-block . org-ascii-dynamic-block)
-    ;; (example-block . org-ascii-example-block)
-    ;; (export-block . org-ascii-export-block)
-    ;; (export-snippet . org-ascii-export-snippet)
-    ;; (fixed-width . org-ascii-fixed-width)
-    ;; (footnote-reference . org-ascii-footnote-reference)
-    ;; (horizontal-rule . org-ascii-horizontal-rule)
-    ;; (inline-src-block . org-ascii-inline-src-block)
-    ;; (inlinetask . org-ascii-inlinetask)
-    ;; (inner-template . org-ascii-inner-template)
-    ;; (keyword . org-ascii-keyword)
-    ;; (latex-environment . org-ascii-latex-environment)
-    ;; (latex-fragment . org-ascii-latex-fragment)
-    ;; (line-break . org-ascii-line-break)
-    ;; (plain-text . org-ascii-plain-text)
-    ;; (planning . org-ascii-planning)
-    ;; (quote-block . org-ascii-quote-block)
-    ;; (quote-section . org-ascii-quote-section)
-    ;; (radio-target . org-ascii-radio-target)
-    ;; (special-block . org-ascii-special-block)
-    ;; (src-block . org-ascii-src-block)
-    ;; (statistics-cookie . org-ascii-statistics-cookie)
-    ;; (strike-through . org-ascii-strike-through)
-    ;; (table . org-ascii-table)
-    ;; (table-cell . org-ascii-table-cell)
-    ;; (table-row . org-ascii-table-row)
-    ;; (target . org-ascii-target)
-    ;; (timestamp . org-ascii-timestamp)
-    ;; (verbatim . org-ascii-verbatim)
-    ;; (verse-block . org-ascii-verse-block)
-	)
+    (underline . org-opml-underline))
   :options-alist '((:opml-link "OPML_LINK" nil nil t)
-		   (:opml-owner-id "OPML_OWNER_ID" nil (if (boundp 'opml-owner-id) opml-owner-id nil) t))
+                   (:opml-owner-id "OPML_OWNER_ID" nil 
+                    (if (boundp 'opml-owner-id) opml-owner-id nil) t))
   :menu-entry '(?m "Export to OPML"
-		   (lambda (a s v b) (org-opml-export-to-opml a s v b)))
+                (lambda (a s v b) (org-opml-export-to-opml a s v b)))
   :filters-alist '((:filter-final-output . org-opml-final-function)))
+
+;;; Export Functions
 
 ;;;###autoload
 (defun org-opml-export-to-opml (&optional async subtreep visible-only body-only)
+  "Export current buffer to an OPML file.
+
+If narrowing is active in the current buffer, only export its
+narrowed part.
+
+If a region is active, export that region.
+
+A non-nil optional argument ASYNC means the process should happen
+asynchronously.  The resulting file should be accessible through
+the `org-export-stack' interface.
+
+When optional argument SUBTREEP is non-nil, export the sub-tree
+at point, extracting information from the headline properties
+first.
+
+When optional argument VISIBLE-ONLY is non-nil, don't export
+contents of hidden elements.
+
+When optional argument BODY-ONLY is non-nil, only write code
+between \"<body>\" and \"</body>\" tags.
+
+Return output file's name."
+  (interactive)
   (let ((file (org-export-output-file-name ".opml" subtreep)))
     (org-export-to-file 'opml file async subtreep visible-only body-only)))
 
+;;; Transcode Functions
+
 (defun org-opml-entity (entity contents info)
-  "Transcode an ENTITY object from Org to ASCII.
+  "Transcode an ENTITY object from Org to OPML.
 CONTENTS are the definition itself.  INFO is a plist holding
 contextual information."
-  (org-element-property
-   (intern ":latex")
-   entity))
+  (org-element-property :latex entity))
 
-(defun org-opml-build-attributes (headline)
-  "Build a key=value string from all property nodes for a given headline."
-  (let* ((pom (org-element-property :begin headline))
-	 (properties (org-entry-properties pom))
-	 (attributes (mapconcat (lambda (element)
-				  (let ((key (car element))
-					(value (cdr element))
-					(case-fold-search nil))
-				    (unless (string-match-p "\\`[A-Z]+\\'" key) ; skip all upcase keys
-				      (format "%s=\"%s\"" key (clean-text value))))) properties " ")))
-    attributes))
-
-(defun org-opml-headline (headline contents info)
-  (let ((text (clean-text (org-element-property :raw-value headline)))
-	(attributes (org-opml-build-attributes headline))
-	(contents (if (string= contents "\n") "" (or contents ""))))
-    (format "<outline text='%s' structure=\"headline\" %s>%s</outline>" text attributes contents)))
-
-(defun clean-text (str)
+(defun org-opml-clean-text (str)
   "Remove problematic elements from STR.
 
 1) Escape HTML entities (&, <, >, etc.)
 2) Translate newlines into spaces
 3) Remove any double spaces
 4) Remove any trailing whitespace"
-  (let* ((text (url-insert-entities-in-string str))
-	 (text (replace-regexp-in-string "\n" " " text))
-	 (text (replace-regexp-in-string "[']" "&apos;" text))
-	 (text (replace-regexp-in-string "[ ][ ]+" " " text))
-	 (text (replace-regexp-in-string " $" "" text)))
-    text))
+  (when str
+    (let* ((text (url-insert-entities-in-string str))
+           (text (replace-regexp-in-string "\n" " " text))
+           (text (replace-regexp-in-string "[']" "&apos;" text))
+           (text (replace-regexp-in-string "[ ][ ]+" " " text))
+           (text (replace-regexp-in-string " $" "" text)))
+      text)))
+
+(defun org-opml-build-attributes (headline)
+  "Build a key=value string from all property nodes for a given HEADLINE."
+  (let* ((pom (org-element-property :begin headline))
+         (properties (org-entry-properties pom))
+         (attributes (mapconcat 
+                      (lambda (element)
+                        (let ((key (car element))
+                              (value (cdr element))
+                              (case-fold-search nil))
+                          (unless (string-match-p "\\`[A-Z]+\\'" key) ; skip all upcase keys
+                            (format "%s=\"%s\"" key (org-opml-clean-text value)))))
+                      properties " ")))
+    attributes))
+
+(defun org-opml-headline (headline contents info)
+  "Transcode a HEADLINE element from Org to OPML.
+CONTENTS holds the contents of the headline.  INFO is a plist
+holding contextual information."
+  (let ((text (org-opml-clean-text (org-element-property :raw-value headline)))
+        (attributes (org-opml-build-attributes headline))
+        (contents (if (string= contents "\n") "" (or contents ""))))
+    (format "<outline text='%s' structure=\"headline\" %s>%s</outline>" 
+            text attributes contents)))
 
 (defun org-opml-paragraph (paragraph contents info)
+  "Transcode a PARAGRAPH element from Org to OPML.
+CONTENTS is the contents of the paragraph, as a string.  INFO is
+the plist used as a communication channel."
   (let* ((parent (org-element-type (org-export-get-parent paragraph)))
-	 (text (clean-text contents)))
+         (text (org-opml-clean-text contents)))
     ;; Only display paragraphs when not in a list item
     (unless (eq parent 'item)
       (format "<outline text='%s' structure=\"paragraph\"/>" text))))
 
 (defun org-opml-item (item contents info)
+  "Transcode an ITEM element from Org to OPML.
+CONTENTS holds the contents of the item.  INFO is a plist holding
+contextual information."
   (let* ((p (car (org-element-contents item)))
-  	 (elements (org-element-contents p))
-  	 (text (mapconcat
-                ;TODO:LT:2016/09/27 this part of code needs rework,
-                ;formatting should be handled by the appropriate
-                ;formating functions alone and not separately
-                ;here. The whole process of how to reformat the items
-                ;needs rethink. Currently we go over one word a time,
-                ;and use cond to format them accordingly, this
-                ;requires working on all possible conditions of
-                ;different org element types, not ideal!
-  	        (lambda (el)
-  	          (cond ((stringp el) (clean-text el))
-  	        	((equal (car el) 'link)
-	        	 (let ((url (org-element-property :raw-link el))
-	        	       (text (org-element-contents el)))
-	        	   (clean-text (format "<a href=\"%s\">%s</a>" url (car text)))))
-	        	((equal (car el) 'italic)
-	        	 (format "/%s/" (car (org-element-contents el))))
-	        	((equal (car el) 'bold)
-	        	 (format "*%s*" (car (org-element-contents el))))
+         (elements (org-element-contents p))
+         (text (mapconcat
+                ;; TODO: This part of code needs rework,
+                ;; formatting should be handled by the appropriate
+                ;; formatting functions alone and not separately
+                ;; here. The whole process of how to reformat the items
+                ;; needs rethink. Currently we go over one word a time,
+                ;; and use cond to format them accordingly, this
+                ;; requires working on all possible conditions of
+                ;; different org element types, not ideal!
+                (lambda (el)
+                  (cond ((stringp el) (org-opml-clean-text el))
+                        ((equal (car el) 'link)
+                         (let ((url (org-element-property :raw-link el))
+                               (text (org-element-contents el)))
+                           (org-opml-clean-text (format "<a href=\"%s\">%s</a>" url (car text)))))
+                        ((equal (car el) 'italic)
+                         (format "/%s/" (car (org-element-contents el))))
+                        ((equal (car el) 'bold)
+                         (format "*%s*" (car (org-element-contents el))))
                         ((equal (car el) 'underline)
                          (format "_%s_" (car (org-element-contents el))))
-	        	((equal (car el) 'verbatim)
-	        	 (format "=%s=" (org-element-property :value el)))
+                        ((equal (car el) 'verbatim)
+                         (format "=%s=" (org-element-property :value el)))
                         ((equal (car el) 'code)
-	        	 (format "~%s~" (org-element-property :value el)))
-                        ))
-	        elements " ")))
+                         (format "~%s~" (org-element-property :value el)))))
+                elements " ")))
     (format "<outline text='%s' structure='list'>%s</outline>" text contents)))
 
 (defun org-opml-link (link contents info)
+  "Transcode a LINK object from Org to OPML.
+CONTENTS is the description of the link, as a string, or the
+empty string.  INFO is a plist holding contextual information."
   (let ((url (org-element-property :raw-link link))
-	(text (car (org-element-contents link))))
+        (text (car (org-element-contents link))))
     (if text
-	(format "[[%s][%s]]" url text)
+        (format "[[%s][%s]]" url text)
       url)))
 
 (defun org-opml-italic (italic contents info)
+  "Transcode ITALIC from Org to OPML.
+CONTENTS is the text with italic markup.  INFO is a plist holding
+contextual information."
   (format "/%s/" contents))
 
 (defun org-opml-bold (bold contents info)
+  "Transcode BOLD from Org to OPML.
+CONTENTS is the text with bold markup.  INFO is a plist holding
+contextual information."
   (format "*%s*" contents))
 
 (defun org-opml-underline (underline contents info)
+  "Transcode UNDERLINE from Org to OPML.
+CONTENTS is the text with underline markup.  INFO is a plist
+holding contextual information."
   (format "_%s_" contents))
 
+;;; Template and Header Functions
+
 (defun org-opml-add-header (key info &optional tag)
+  "Add header element for KEY from INFO, optionally using TAG name."
   (let ((tag (or tag (substring (symbol-name key) 1)))
-	(value (plist-get info key)))
+        (value (plist-get info key)))
     (when value
       (format "<%s>%s</%s>" tag (if (listp value) (car value) value) tag))))
 
 (defun org-opml-add-timestamp-headers ()
+  "Add dateModified and dateCreated headers with current timestamps."
   (let* ((fmt "%a, %d %b %Y %H:%M:%S")
-	 (attr (if (buffer-file-name) (file-attributes (buffer-file-name)) nil))
-	 (modified (if attr (nth 5 attr) (current-time)))
-	 (creation (current-time)))
+         (attr (if (buffer-file-name) (file-attributes (buffer-file-name)) nil))
+         (modified (if attr (nth 5 attr) (current-time)))
+         (creation (current-time)))
     (concat
      (format "<dateModified>%s GMT</dateModified>" (format-time-string fmt modified t))
      (format "<dateCreated>%s GMT</dateCreated>" (format-time-string fmt creation t)))))
 
 (defun org-opml-template (contents info)
+  "Return complete document string after OPML conversion.
+CONTENTS is the transcoded contents string.  INFO is a plist
+holding export options."
   (concat
    "<?xml version='1.0'?>"
    (format "<!-- OPML generated by %s on %s GMT -->"
-	   org-export-creator-string
-	   (format-time-string "%a, %d %b %Y %H:%M:%S" (current-time) t))
+           org-export-creator-string
+           (format-time-string "%a, %d %b %Y %H:%M:%S" (current-time) t))
    "<opml version='2.0'>"
    "<head>"
    (if (equal (plist-get info :title) " *Format Temp 0*")
@@ -220,6 +270,9 @@ contextual information."
    "</opml>"))
 
 (defun org-opml-final-function (contents backend info)
+  "Apply final formatting to CONTENTS.
+BACKEND and INFO are ignored.  This function formats the XML
+using xmllint if available."
   (with-temp-buffer
     (insert contents)
     (when (executable-find "xmllint")
@@ -227,3 +280,5 @@ contextual information."
     (buffer-substring-no-properties (point-min) (point-max))))
 
 (provide 'ox-opml)
+
+;;; ox-opml.el ends here
