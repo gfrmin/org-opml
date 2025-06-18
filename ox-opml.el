@@ -105,7 +105,7 @@ Return output file's name."
 
 ;;; Transcode Functions
 
-(defun org-opml-entity (entity contents info)
+(defun org-opml-entity (entity _contents _info)
   "Transcode an ENTITY object from Org to OPML.
 CONTENTS are the definition itself.  INFO is a plist holding
 contextual information."
@@ -140,7 +140,7 @@ contextual information."
                       properties " ")))
     attributes))
 
-(defun org-opml-headline (headline contents info)
+(defun org-opml-headline (headline contents _info)
   "Transcode a HEADLINE element from Org to OPML.
 CONTENTS holds the contents of the headline.  INFO is a plist
 holding contextual information."
@@ -150,7 +150,7 @@ holding contextual information."
     (format "<outline text='%s' structure=\"headline\" %s>%s</outline>" 
             text attributes contents)))
 
-(defun org-opml-paragraph (paragraph contents info)
+(defun org-opml-paragraph (paragraph contents _info)
   "Transcode a PARAGRAPH element from Org to OPML.
 CONTENTS is the contents of the paragraph, as a string.  INFO is
 the plist used as a communication channel."
@@ -160,7 +160,7 @@ the plist used as a communication channel."
     (unless (eq parent 'item)
       (format "<outline text='%s' structure=\"paragraph\"/>" text))))
 
-(defun org-opml-item (item contents info)
+(defun org-opml-item (item contents _info)
   "Transcode an ITEM element from Org to OPML.
 CONTENTS holds the contents of the item.  INFO is a plist holding
 contextual information."
@@ -194,7 +194,7 @@ contextual information."
                 elements " ")))
     (format "<outline text='%s' structure='list'>%s</outline>" text contents)))
 
-(defun org-opml-link (link contents info)
+(defun org-opml-link (link _contents _info)
   "Transcode a LINK object from Org to OPML.
 CONTENTS is the description of the link, as a string, or the
 empty string.  INFO is a plist holding contextual information."
@@ -204,19 +204,19 @@ empty string.  INFO is a plist holding contextual information."
         (format "[[%s][%s]]" url text)
       url)))
 
-(defun org-opml-italic (italic contents info)
+(defun org-opml-italic (_italic contents _info)
   "Transcode ITALIC from Org to OPML.
 CONTENTS is the text with italic markup.  INFO is a plist holding
 contextual information."
   (format "/%s/" contents))
 
-(defun org-opml-bold (bold contents info)
+(defun org-opml-bold (_bold contents _info)
   "Transcode BOLD from Org to OPML.
 CONTENTS is the text with bold markup.  INFO is a plist holding
 contextual information."
   (format "*%s*" contents))
 
-(defun org-opml-underline (underline contents info)
+(defun org-opml-underline (_underline contents _info)
   "Transcode UNDERLINE from Org to OPML.
 CONTENTS is the text with underline markup.  INFO is a plist
 holding contextual information."
@@ -269,7 +269,7 @@ holding export options."
    "</body>"
    "</opml>"))
 
-(defun org-opml-final-function (contents backend info)
+(defun org-opml-final-function (contents _backend _info)
   "Apply final formatting to CONTENTS.
 BACKEND and INFO are ignored.  This function formats the XML
 using xmllint if available."

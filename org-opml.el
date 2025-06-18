@@ -307,7 +307,7 @@
 ;;; File format registration
 
 (defun org-opml--set-buffer-file-format ()
-  "Set buffer-file-format to '(opml) when visiting an .opml file."
+  "Set buffer-file-format to \\='(opml) when visiting an .opml file."
   (when (and buffer-file-name
              (string-match-p "\\.opml\\'" buffer-file-name))
     (setq buffer-file-format '(opml))))
